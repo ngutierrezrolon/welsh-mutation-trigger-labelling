@@ -1,0 +1,298 @@
+body {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background: linear-gradient(to bottom right, #f5f7fa, #d0dff3);
+  color: #333;
+  margin: 0;
+  line-height: 1.6;
+}
+.container {
+  display: flex;
+  gap: 40px;
+  background-color: #ffffffe6;
+}
+.left, .right {
+  flex: 1;
+  border: 1px solid #ccc;
+  overflow: scroll;
+  padding: 15px;
+  min-height: 300px;
+  max-height: 70vh;
+}
+  .mutated-word {
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+    transition: background-color 0.3s ease;
+    outline: none;
+  }
+  .mutated-word:hover, .mutated-word:focus {
+    background-color: yellow;
+  }
+input[type="submit"] {
+    background-color: #6a1b9a;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s;
+    display: block;
+    margin: 20px auto;
+    align-items: center;
+}
+input[type="submit"]:hover {
+    background-color: #8e24aa;
+}
+
+.site-header {
+  background-color: #8b61f6;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding-left: 20px;
+  position: fixed;
+  color: white;
+  z-index: 1000;
+
+ }
+.site-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+  main {
+    padding-top: 50px;
+    margin: 20px;
+  }
+textarea {
+  width: 100%;          /* fills parent container */
+  
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #b5e7d6;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;     /* allow user to resize only up/down */
+  box-sizing: border-box; /* ensures padding doesn’t break width */
+}
+
+.site-footer {
+  align-items: center;
+  padding: 1em 2em;
+  background-color: #8b61f6;
+  color: white;
+  text-align: center;
+  padding: 0.5rem 1rem;  /* smaller padding (top/bottom shrinks) */
+  font-size: 0.85rem;    /* slightly smaller text */
+  line-height: 1.4;  
+  
+}
+  /* Mutation colors */
+  .sm { background-color: #ffa929; }  /* soft mutation */
+  .nm { background-color: #f660ef; }  /* nasal mutation */
+  .am { background-color: #1e8ef7; }  /* aspirate mutation */
+  .hm { background-color: #5df0ae; }  /* h-prothesis */
+
+
+.word {
+    transition: color 0.4s ease;
+    color: black;
+}
+.hidden {
+  display: none !important;
+}
+.no-color {
+  color: black !important; /* override other colors */
+}
+
+
+  /* Mutation type colors */
+.mode-muttag[data-muttag="+sm"] { color: #ffa929; }
+.mode-muttag[data-muttag="+nm"] { color: #f660ef; }
+.mode-muttag[data-muttag="+am"] { color: #1e8ef7; }
+.mode-muttag[data-muttag="+hm"] { color: #5df0ae; }
+
+.mode-mutreasonclass[data-mutreasonclass="prep"] { color: #257ee4; }
+.mode-mutreasonclass[data-mutreasonclass="poss"] { color: #6200ff; }
+.mode-mutreasonclass[data-mutreasonclass="simp"] { color: #b338ff; }
+.mode-mutreasonclass[data-mutreasonclass="intp"] { color: #9fc538; }
+.mode-mutreasonclass[data-mutreasonclass="preadj"] { color: #d4a600; }
+.mode-mutreasonclass[data-mutreasonclass="num"] { color: #fb6b2d; }
+.mode-mutreasonclass[data-mutreasonclass="fem"] { color: #d4009f; }
+.mode-mutreasonclass[data-mutreasonclass="adf"] { color: #12cfa9; }
+.mode-mutreasonclass[data-mutreasonclass="rule"] { color: #eb3257; }
+
+/* Legend box styling */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px;
+    margin: 15px 0;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    
+}
+
+.legend-title {
+    font-weight: bold;
+    margin-bottom: 0.5em;
+    font-size: 1.1em;
+    text-align: center;
+    color: #000000;
+}
+.toggle-group {
+    margin-bottom: 1em;
+    justify-content: center;
+    display: flex;
+    gap: 0.5em;
+}
+.mode-legend {
+    display: flex;
+    justify-content: center;  /* center entire row */
+    gap: 1.2em;               /* space between buttons */
+    flex-wrap: wrap;          /* wrap if too wide */
+    margin-top: 0.5em;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+.legend-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    padding: 6px 12px;
+    font-weight: 600;
+    border-radius: 50px;
+    cursor: pointer;
+    background-color: var(--bg-color);
+    color: black;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: background-color 0.3s ease;
+    position: relative;
+}
+
+.legend-toggle input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+/* Hover effect to slightly darken the button */
+.legend-toggle:hover {
+    filter: brightness(85%);
+}
+.legend-color {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid #666;
+}
+
+/* Make sure legend text doesn't wrap weirdly */
+.legend-item span {
+    white-space: nowrap;
+}
+
+.glossary-term {
+  color: #0066cc;
+  text-decoration: underline dotted;
+  cursor: help;
+  position: relative;
+}
+/* keep your .glossary-term spans */
+.glossary-term { position: relative; cursor: help; }
+
+/* disable the old inline bubbles so they don't interfere */
+.glossary-term .tooltip-bubble { display: none !important; }
+
+/* single global bubble */
+.global-tooltip {
+  position: fixed;
+  display: none;
+  max-width: 360px;
+  padding: 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  color: #111;
+  line-height: 1.4;
+  font-size: 0.9rem;
+  z-index: 999999;
+  pointer-events: none;          /* don’t steal hover */
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* little arrow */
+.global-tooltip::after {
+  content: "";
+  position: absolute;
+  width: 0; height: 0;
+  border: 8px solid transparent;
+}
+
+/* arrow when below */
+.global-tooltip[data-pos="below"]::after {
+  top: -16px; left: 50%; transform: translateX(-50%);
+  border-bottom-color: #ccc; /* border outline */
+}
+.global-tooltip[data-pos="below"]::before {
+  content: "";
+  position: absolute;
+  top: -14px; left: 50%; transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-bottom-color: #fff; /* inner fill */
+}
+
+/* arrow when above */
+.global-tooltip[data-pos="above"]::after {
+  bottom: -16px; left: 50%; transform: translateX(-50%);
+  border-top-color: #ccc;
+}
+.global-tooltip[data-pos="above"]::before {
+  content: "";
+  position: absolute;
+  bottom: -14px; left: 50%; transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: #fff;
+}
+
+/* 
+.glossary-term .tooltip-bubble {
+  display: none;
+  position: absolute;
+  top: 120%;             
+  left: 50%;              
+  transform: translateX(-50%); 
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 10px 14px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  white-space: normal;     
+  max-width: 320px;        
+  width: max-content;      
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #111;
+  z-index: 10000;
+
+  /* fallback if it would overflow 
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.glossary-term:hover .tooltip-bubble {
+  display: block;
+} */

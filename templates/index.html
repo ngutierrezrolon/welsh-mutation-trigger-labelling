@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mutation Explainer{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="header-left">
+            <h1>Mutation Explainer - Y Treigladur Ar-lein</h1>
+        </div>
+    
+        
+    </header>
+
+    <main>
+        <p>Are mutations hard to understand? Try out our tool: </p>
+        <form id="form" action="{{ url_for('home') }}" method="POST">
+            <label>Enter your Welsh text here:</label>
+            <textarea id="welsh_txt" name="welsh_txt" rows="10">{{ welsh_text }}</textarea>
+            
+            <input type="submit" value="Submit">
+            
+        </form>
+        <div class="legend">
+            <div class="legend-title">Legend</div>
+            
+
+            <div class="legend-row toggle-group">
+                <label class="muttag"><input type="radio" name="mode" value="muttag" checked>Mutation Type</label>
+                <label class="mutreason"><input type="radio" name="mode" value="mutreasonclass">Mutation Reason</label>
+            </div>
+
+            <div class="legend-row mode-legend" data-mode="muttag">
+                {% for mut, color in {'Soft':'#ffa929','Nasal':'#f660ef','Aspirate':'#1e8ef7', 'H-prothesis':'#5df0ae'}.items() %}
+                    <button class="legend-toggle" style="--bg-color: {{ color }};" data-type="muttag" data-subtype="{{ mut }}">
+                        <input type="checkbox" checked onchange="toggleTag(this)">
+                        {{ mut }}
+                    </button>
+                {% endfor %}
+            </div>
+
+            <div class="legend-row mode-legend" data-mode="mutreasonclass" style="display:none;">
+                {% for reason, color in {'Preposition':'#257ee4','Possessive':'#6200ff','Simple':'#b338ff','Interpolation':'#9fc538','Prenominal Adjective':'#d4a600','Numeral':'#fb6b2d','Feminine':'#d4009f', 'Adverb': '#12cfa9', 'Rule':'#eb3257'}.items() %}
+                    <button class="legend-toggle" style="--bg-color: {{ color }};" data-type="mutreasonclass" data-subtype="{{ reason }}">
+                        <input type="checkbox" checked onchange="toggleTag(this)">
+                        {{ reason }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="container">
+            <div class="left" id="text-display">
+                <div id="annotated-text">
+                {% for word in mutated_words %}
+                    <span 
+                    class="word{% if word['mut_tag'] != '+0m' %} mutated-word{% endif %}"
+                    data-muttag="{{ word['mut_tag'] }}"
+                    data-mutreason="{{ word['mut_reason'] }}"
+                    data-mutreasonclass="{{ word['mut_reason_class'] }}"
+                    data-explanation="{{ word['explanation'] if word['mut_tag'] != '+0m' else '' }}"
+                    title="{{ word['pos_tag'] }}"
+                    >
+                    {{ word['wordform'] }}
+                    </span>
+                {% endfor %}
+                </div>
+               
+            </div>
+            <div class="right" id="explanation-display">
+                <p>Select a mutated word to see the explanation here.</p>
+            </div>
+        </div>
+        <break></break>
+    </main>
+
+    <footer class="site-footer">
+        <p>2025 Nicolás Gutiérrez Rolón</p>
+        <p>Cardiff University - Computer Science</p>
+        <p>Supervisor: Dr. Fernando Alva Manchego</p>
+        <p>Built using Python and Flask | For academic use only.</p>
+    </footer>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const annotatedText = document.getElementById('annotated-text');
+  const words = annotatedText.querySelectorAll('.word');
+  const explanationDisplay = document.getElementById('explanation-display');
+
+  // --- GLOSSARY ---
+  const glossary = {
+    "Possessive pronouns": "e.g. fy (my), dy (your). they indicate possession or belonging.",
+    "determiners": "They look like the possessive pronouns but have a different role in the sentence.",
+    "prepositions": "e.g. ar (on), i (to). words placed before a noun to show relation.",
+    "predicative": "yn is the predicative particle, it links the subject with a quality or state. Example: Mae Mara yn hapus (Mara is happy).",
+    "conjunction": "e.g. a (and), ond (but). Words that link clauses or phrases. Example: a (and), ond (but).",
+    "verb-noun": "The basic verbal form in Welsh (like an infinitive). It can act as both a verb or a noun. Example: canu (to sing).",
+    "object": "The noun or phrase that receives the action of the verb. Example: Gwelais y ci (I saw the dog).",
+    "subject": "The noun or phrase performing the action of the verb. Example: Canodd y ferch (The girl sang).",
+    "definite article": "The word the. In Welsh: y, yr or 'r, depending on context.",
+    "genitive": "The form showing possession/of. Example: car y dyn (the man's car).",
+    "numeral": "A word expressing number. Example: un (one), dau (two).",
+    "locative preposition": "Prepositions that describe location. Example: ar (on), yn (in).",
+    "adverb": "A word that describes a verb, adjective, or another adverb. Example: yn gyflym (quickly).",
+    "particle": "A small function word with a grammatical role. ",
+    "clauses": "Units of grammar containing a subject and verb. Example: Pan ddaeth hi, fe es i (When she came, I went).",
+    "interpolation": "When the order of the sentence is different to the expected.",
+    //"soft mutation": "In this mutation, consonants change like so: P>B, T>D, C>G, B>F, D>DD, G>(), LL>L, M>F, RH>R",
+    //"nasal mutation": "In this mutation, consonants change like so: P>MH, T>NH, C>NGH, B>M, D>N, G>NG",
+    //"aspirate mutation": "In this mutation, consonants change like so: P>PH, T>TH, C>CH"
+  };
+
+  const subtypeMap = {
+  'Soft': "sm",
+  'Nasal': "nm",
+  'Aspirate': "am",
+  'H-prothesis': "hm",
+  'Preposition': "prep",
+  'Possessive': "poss",
+  'Simple': "simp",
+  'Interpolation': "intp",
+  'Prenominal Adjective': "preadj",
+  'Numeral': "num",
+  'Feminine': "fem",
+  'Adverb': "adf",
+  'Rule': "rule"
+};
+let selectedWord = null;
+
+
+  // --- HELPER FUNCTIONS ---
+
+  // Escape regex special characters in glossary keys
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+  // Inject tooltip bubbles for glossary terms
+  function injectTooltips() {
+    document.querySelectorAll('.glossary-term').forEach(term => {
+      if (!term.querySelector('.tooltip-bubble')) {
+        const bubble = document.createElement('div');
+        bubble.className = 'tooltip-bubble';
+        bubble.innerText = term.dataset.glossary;
+        term.appendChild(bubble);
+      }
+    });
+  }
+function highlightGlossaryTerms(container, glossary) {
+  // Iterate over each glossary term
+  Object.entries(glossary).forEach(([term, explanation]) => {
+    const safeExplanation = explanation; // assume explanation is safe text
+
+    // Regex to match the term as a whole word
+    const regex = new RegExp(`\\b(${term})\\b`, 'gi');
+
+    // Recursive DOM walker
+    function walk(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        if (regex.test(node.textContent)) {
+          const frag = document.createDocumentFragment();
+          let lastIndex = 0;
+
+          node.textContent.replace(regex, (match, p1, offset) => {
+            // Text before match
+            if (offset > lastIndex) {
+              frag.appendChild(document.createTextNode(node.textContent.slice(lastIndex, offset)));
+            }
+
+            // Wrap matched term in span, but NO tooltip yet
+            const span = document.createElement('span');
+            span.className = 'glossary-term';
+            span.dataset.glossary = safeExplanation;
+            span.textContent = match;
+            frag.appendChild(span);
+
+            lastIndex = offset + match.length;
+          });
+
+          // Remaining text
+          if (lastIndex < node.textContent.length) {
+            frag.appendChild(document.createTextNode(node.textContent.slice(lastIndex)));
+          }
+
+          node.replaceWith(frag);
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        node.childNodes.forEach(child => walk(child));
+      }
+    }
+
+    walk(container);
+  });
+}
+
+  // Get colors for mutation tags and reasons
+  const mutTagColors = { '+sm': '#ffa929', '+nm': '#f660ef', '+am': '#1e8ef7', '+hm': '#5df0ae' };
+  const mutReasonColors = { 'prep': '#257ee4', 'poss': '#6200ff', 'simp': '#b338ff','intp':'#9fc538', 'preadj': '#d4a600', 'num': '#fb6b2d', 'fem': '#d4009f', 'adf': '#12cfa9', 'rule': '#eb3257' };
+  function getColorForMutTag(tag) { return mutTagColors[tag] || ''; }
+  function getColorForMutReason(reasonClass) { return mutReasonColors[reasonClass] || ''; }
+
+  // Global state for toggles
+  const toggledTags = {
+    muttag: new Set(['+sm', '+nm', '+am', '+hm']),
+    mutreasonclass: new Set(['prep', 'poss', 'simp', 'intp', 'preadj', 'num', 'fem', 'adf', 'rule'])
+  };
+
+  // Update word colors based on toggles
+  function updateColorsAccordingToToggles(mode) {
+  words.forEach(word => {
+    const attrVal = (mode === 'muttag') ? word.dataset.muttag : word.dataset.mutreasonclass;
+    word.style.color = '';
+    if (!toggledTags[mode].has(attrVal)) {
+      word.classList.add('no-color');
+    } else {
+      word.classList.remove('no-color');
+      word.style.color = (mode === 'muttag') ? getColorForMutTag(attrVal) : getColorForMutReason(attrVal);
+    }
+  });
+
+  // keep selected word highlight in sync with current mode
+  if (selectedWord) {
+    const attrVal = (mode === 'muttag') ? selectedWord.dataset.muttag : selectedWord.dataset.mutreasonclass;
+    const color = (mode === 'muttag') ? getColorForMutTag(attrVal) : getColorForMutReason(attrVal);
+    selectedWord.style.backgroundColor = color;
+    selectedWord.style.color = 'white';
+  }
+}
+
+
+ 
+window.toggleTag = function (checkbox) {
+  const button = checkbox.closest('button');
+  const type = button.dataset.type;
+
+  // map friendly label -> internal code
+  let subtype = button.dataset.subtype;
+  subtype = (typeof subtypeMap[subtype] !== 'undefined') ? subtypeMap[subtype] : subtype;
+
+  const attrValue = (type === 'muttag') ? '+' + subtype : subtype;
+
+  if (checkbox.checked) {
+    toggledTags[type].add(attrValue);
+  } else {
+    toggledTags[type].delete(attrValue);
+  }
+
+  const mode = document.querySelector('input[name="mode"]:checked')?.value || 'muttag';
+  updateColorsAccordingToToggles(mode);
+};
+
+
+  // --- INITIALIZATION ---
+
+  // Show correct legend & apply initial mode classes
+  const initialMode = document.querySelector('input[name="mode"]:checked').value;
+  document.querySelectorAll('.mode-legend').forEach(legend => {
+    legend.style.display = (legend.dataset.mode === initialMode) ? '' : 'none';
+  });
+  words.forEach(word => word.classList.add('mode-' + initialMode));
+  updateColorsAccordingToToggles(initialMode);
+
+  // Mode change listener
+  document.querySelectorAll('input[name="mode"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      document.querySelectorAll('.mode-legend').forEach(legend => {
+        legend.style.display = (legend.dataset.mode === mode) ? '' : 'none';
+      });
+      words.forEach(word => {
+        word.classList.remove('mode-muttag', 'mode-mutreasonclass', 'no-color');
+        word.style.color = '';
+        word.classList.add('mode-' + mode);
+      });
+      updateColorsAccordingToToggles(mode);
+    });
+  });
+
+  // --- CLICK TO SHOW EXPLANATION ---
+annotatedText.addEventListener('click', (e) => {
+  const target = e.target;
+  if (target.classList.contains('mutated-word')) {
+
+    // clear previous highlights
+    words.forEach(w => {
+      w.style.backgroundColor = '';
+      w.style.color = (document.querySelector('input[name="mode"]:checked').value === 'muttag') 
+        ? getColorForMutTag(w.dataset.muttag) 
+        : getColorForMutReason(w.dataset.mutreasonclass);
+    });
+
+    // set highlight for clicked word
+    selectedWord = target;
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    const attrVal = (mode === 'muttag') ? target.dataset.muttag : target.dataset.mutreasonclass;
+    const color = (mode === 'muttag') ? getColorForMutTag(attrVal) : getColorForMutReason(attrVal);
+    target.style.backgroundColor = color;
+    target.style.color = 'white';
+
+    // update explanation box
+    let rawExplanation = target.getAttribute('data-explanation') || 'No explanation available.';
+    // Clear and set raw text first
+    explanationDisplay.innerHTML = rawExplanation;
+
+    // Then highlight glossary terms inside the container
+    highlightGlossaryTerms(explanationDisplay, glossary);
+    injectTooltips();
+
+    } 
+    
+});
+// create one tooltip in <body>
+const GLOBAL_TIP = document.createElement('div');
+GLOBAL_TIP.className = 'global-tooltip';
+document.body.appendChild(GLOBAL_TIP);
+
+let currentTerm = null;
+
+function showTipFor(termEl) {
+  const text = termEl.dataset.glossary || termEl.textContent || '';
+  if (!text) return;
+
+  GLOBAL_TIP.textContent = text;
+  GLOBAL_TIP.style.display = 'block';
+  GLOBAL_TIP.style.left = '0px';
+  GLOBAL_TIP.style.top = '0px';
+
+  // where is the term on screen?
+  const r = termEl.getBoundingClientRect();
+  const margin = 8;
+
+  // measure tooltip after it's visible
+  const w = GLOBAL_TIP.offsetWidth;
+  const h = GLOBAL_TIP.offsetHeight;
+
+  // default: below + centered
+  let left = r.left + (r.width / 2) - (w / 2);
+  let top  = r.bottom + margin;
+  let pos  = 'below';
+
+  // flip up if not enough space below
+  if (top + h > window.innerHeight) {
+    top = r.top - h - margin;
+    pos = 'above';
+  }
+
+  // clamp horizontally to viewport
+  left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
+
+  GLOBAL_TIP.dataset.pos = pos;
+  GLOBAL_TIP.style.left = `${Math.round(left)}px`;
+  GLOBAL_TIP.style.top  = `${Math.round(top)}px`;
+}
+
+function hideTip() {
+  GLOBAL_TIP.style.display = 'none';
+  currentTerm = null;
+}
+
+// Event delegation so it works for dynamically injected glossary terms
+document.addEventListener('mouseover', (e) => {
+  const term = e.target.closest('.glossary-term');
+  if (term) {
+    currentTerm = term;
+    showTipFor(term);
+  } else if (!e.target.closest('.global-tooltip')) {
+    hideTip();
+  }
+});
+
+document.addEventListener('mouseout', (e) => {
+  // hide when leaving the term (and not moving into the tooltip—though tooltip is pointer-events:none)
+  if (e.target.closest('.glossary-term') && !e.relatedTarget?.closest('.glossary-term')) {
+    hideTip();
+  }
+});
+
+// keep tooltip in place on scroll/resize
+window.addEventListener('scroll', () => currentTerm && showTipFor(currentTerm), true);
+window.addEventListener('resize', () => currentTerm && showTipFor(currentTerm));
+
+});
+</script>
+
+</body>
+</html>
